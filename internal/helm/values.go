@@ -38,8 +38,8 @@ type ClusterInfo struct {
 // For Garden Linux clusters, the embedded gardenlinux.yaml is loaded as the base
 // (pre-compiled driver, CDI, toolkit path, NFD config) and user spec overrides are
 // applied on top. For other OS clusters, only spec overrides are applied.
-func BuildValues(spec gpuv1beta1.GpuSpec, cluster ClusterInfo) (map[string]interface{}, error) {
-	values := map[string]interface{}{}
+func BuildValues(spec gpuv1beta1.GpuSpec, cluster ClusterInfo) (map[string]any, error) {
+	values := map[string]any{}
 
 	if cluster.GardenLinux {
 		base, err := gardenLinuxBase()
@@ -57,12 +57,12 @@ func BuildValues(spec gpuv1beta1.GpuSpec, cluster ClusterInfo) (map[string]inter
 // gardenLinuxBase loads the embedded gardenlinux.yaml and returns it as a values map.
 // sigs.k8s.io/yaml unmarshals bare numbers as float64, so driver.version (e.g. 590)
 // is normalized to a string to keep the map type-consistent with spec overrides.
-func gardenLinuxBase() (map[string]interface{}, error) {
+func gardenLinuxBase() (map[string]any, error) {
 	raw, err := chart.GardenLinuxValues()
 	if err != nil {
 		return nil, fmt.Errorf("loading garden linux base values: %w", err)
 	}
-	var base map[string]interface{}
+	var base map[string]any
 	if err := sigsyaml.Unmarshal(raw, &base); err != nil {
 		return nil, fmt.Errorf("parsing garden linux base values: %w", err)
 	}
@@ -72,8 +72,8 @@ func gardenLinuxBase() (map[string]interface{}, error) {
 
 // normalizeDriverVersion converts driver.version from float64 to string when the YAML
 // value is a bare number (e.g. `version: 590` unmarshals as float64(590)).
-func normalizeDriverVersion(values map[string]interface{}) {
-	driver, _ := values["driver"].(map[string]interface{})
+func normalizeDriverVersion(values map[string]any) {
+	driver, _ := values["driver"].(map[string]any)
 	if driver == nil {
 		return
 	}
@@ -84,11 +84,11 @@ func normalizeDriverVersion(values map[string]interface{}) {
 
 // applySpecOverrides applies user-driven overrides from the Gpu CR spec on top of
 // whatever base values are already in the map.
-func applySpecOverrides(values map[string]interface{}, spec gpuv1beta1.GpuSpec) {
+func applySpecOverrides(values map[string]any, spec gpuv1beta1.GpuSpec) {
 	// get driver version from values (gardenlinux base or empty)
-	driver, _ := values["driver"].(map[string]interface{})
+	driver, _ := values["driver"].(map[string]any)
 	if driver == nil {
-		driver = map[string]interface{}{
+		driver = map[string]any{
 			"enabled":    true,
 			"repository": nvidiaDriverRepo,
 		}

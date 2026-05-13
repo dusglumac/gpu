@@ -212,8 +212,8 @@ func driverVersionFromDaemonSet(ds *appsv1.DaemonSet) string {
 		tag := image[idx+1:]
 		// Tags are formatted as "<version>-<os>" (e.g. "535.129.03-ubuntu22.04").
 		// Strip the OS suffix if present.
-		if dashIdx := strings.Index(tag, "-"); dashIdx >= 0 {
-			return tag[:dashIdx]
+		if before, _, found := strings.Cut(tag, "-"); found {
+			return before
 		}
 		return tag
 	}

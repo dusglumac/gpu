@@ -20,7 +20,7 @@ import "context"
 // The concrete *Client talks to a real cluster; tests inject a fake.
 type Installer interface {
 	// InstallOrUpgrade installs or upgrades the GPU Operator chart with the given values.
-	InstallOrUpgrade(ctx context.Context, chartData []byte, values map[string]interface{}) error
+	InstallOrUpgrade(ctx context.Context, chartData []byte, values map[string]any) error
 
 	// Uninstall removes the GPU Operator Helm release. It is idempotent: returns nil
 	// if no release exists.
