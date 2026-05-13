@@ -1,0 +1,23 @@
+name: PR GoLang Lint
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  golangci:
+    runs-on: ubuntu-latest
+    name: Lint
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Run golangci-lint
+        run: make lint

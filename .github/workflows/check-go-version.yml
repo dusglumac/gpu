@@ -1,0 +1,39 @@
+name: Check Go Version Match
+
+on:
+  push:
+    paths:
+      - Dockerfile
+      - go.mod
+  pull_request:
+    paths:
+      - Dockerfile
+      - go.mod
+
+jobs:
+  check-go-version:
+    runs-on: ubuntu-latest
+    name: Go Version Consistency
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Extract Go version from go.mod
+        id: go_mod
+        run: |
+          GO_MOD_VERSION=$(grep '^go ' go.mod | awk '{print $2}' | cut -d. -f1,2)
+          echo "version=$GO_MOD_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Extract Go version from Dockerfile
+        id: dockerfile
+        run: |
+          DOCKER_VERSION=$(grep -Eo 'golang:[0-9]+\.[0-9]+' Dockerfile | head -1 | sed 's/golang://')
+          echo "version=$DOCKER_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Compare versions
+        run: |
+          if [ "${{ steps.go_mod.outputs.version }}" != "${{ steps.dockerfile.outputs.version }}" ]; then
+            echo "::error::Go version mismatch: go.mod=${{ steps.go_mod.outputs.version }}, Dockerfile=${{ steps.dockerfile.outputs.version }}"
+            exit 1
+          fi
+          echo "Go versions match: ${{ steps.go_mod.outputs.version }}"

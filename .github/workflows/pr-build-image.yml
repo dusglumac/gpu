@@ -1,0 +1,23 @@
+name: PR Build Image
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '.github/workflows/stale.yml'
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    name: Build Image Locally
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          outputs: type=cacheonly
+          tags: gpu-operator:${{ github.event.pull_request.head.sha }}
