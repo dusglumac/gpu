@@ -109,9 +109,9 @@ func TestBuildValues(t *testing.T) {
 			if !ok {
 				t.Fatal("BuildValues: missing 'driver' key")
 			}
-			driverMap, ok := driverRaw.(map[string]interface{})
+			driverMap, ok := driverRaw.(map[string]any)
 			if !ok {
-				t.Fatalf("BuildValues: 'driver' is %T, want map[string]interface{}", driverRaw)
+				t.Fatalf("BuildValues: 'driver' is %T, want map[string]any", driverRaw)
 			}
 
 			assertString(t, driverMap, "repository", tt.wantRepo)
@@ -127,7 +127,7 @@ func TestBuildValues(t *testing.T) {
 	}
 }
 
-func assertString(t *testing.T, m map[string]interface{}, key, want string) {
+func assertString(t *testing.T, m map[string]any, key, want string) {
 	t.Helper()
 	got, ok := m[key]
 	if !ok {

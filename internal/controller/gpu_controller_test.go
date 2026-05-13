@@ -39,7 +39,7 @@ type fakeInstaller struct {
 	uninstallErr    error
 }
 
-func (f *fakeInstaller) InstallOrUpgrade(_ context.Context, _ []byte, _ map[string]interface{}) error {
+func (f *fakeInstaller) InstallOrUpgrade(_ context.Context, _ []byte, _ map[string]any) error {
 	f.installCalls++
 	return f.installErr
 }
