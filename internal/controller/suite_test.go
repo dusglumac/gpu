@@ -93,7 +93,7 @@ var _ = AfterSuite(func() {
 })
 
 // newGpu creates a minimal cluster-scoped Gpu CR in the API server and returns it.
-func newGpu(name string) *gpuv1beta1.Gpu { //nolint:unparam
+func newGpu(name string) *gpuv1beta1.Gpu {
 	gpu := &gpuv1beta1.Gpu{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 	}
@@ -115,7 +115,7 @@ func deleteGpu(name string) {
 }
 
 // newGpuNode creates a Node with the given instance-type label and OS image.
-func newGpuNode(name, instanceType, osImage string) *corev1.Node { //nolint:unparam
+func newGpuNode(name, instanceType, osImage string) *corev1.Node {
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,

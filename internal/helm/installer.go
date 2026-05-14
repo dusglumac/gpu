@@ -45,7 +45,7 @@ func NewClient(cfg *rest.Config) *Client {
 // InstallOrUpgrade installs the chart if no release exists, or upgrades it if one does.
 // It always returns immediately without waiting for pods to become ready - the reconciler
 // sets status to Processing and checks health on the next cycle.
-func (c *Client) InstallOrUpgrade(ctx context.Context, chartData []byte, values map[string]any) error {
+func (c *Client) InstallOrUpgrade(ctx context.Context, chartData []byte, values map[string]interface{}) error {
 	cfg, err := c.actionConfig()
 	if err != nil {
 		return err
@@ -173,7 +173,7 @@ func currentRelease(cfg *action.Configuration) (*release.Release, error) {
 	return nil, nil
 }
 
-func install(ctx context.Context, cfg *action.Configuration, chrt *chart.Chart, values map[string]any) error {
+func install(ctx context.Context, cfg *action.Configuration, chrt *chart.Chart, values map[string]interface{}) error {
 	act := action.NewInstall(cfg)
 	act.ReleaseName = releaseName
 	act.Namespace = releaseNamespace
@@ -185,7 +185,7 @@ func install(ctx context.Context, cfg *action.Configuration, chrt *chart.Chart, 
 	return nil
 }
 
-func upgrade(ctx context.Context, cfg *action.Configuration, chrt *chart.Chart, values map[string]any) error {
+func upgrade(ctx context.Context, cfg *action.Configuration, chrt *chart.Chart, values map[string]interface{}) error {
 	act := action.NewUpgrade(cfg)
 	act.Namespace = releaseNamespace
 	act.Wait = false
@@ -209,6 +209,6 @@ func newRESTClientGetter(cfg *rest.Config, namespace string) genericclioptions.R
 	return &restConfigGetter{cfg: cfg, namespace: namespace}
 }
 
-func noopLog(_ string, _ ...any) {
+func noopLog(_ string, _ ...interface{}) {
 	// intentionally empty - suppresses Helm's internal debug output
 }

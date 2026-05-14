@@ -91,7 +91,7 @@ func TestLatestVersionSorting(t *testing.T) {
 		version *semver.Version
 	}
 
-	charts := make([]chartEntry, 0, len(filenames))
+	var charts []chartEntry
 	for _, f := range filenames {
 		v := versionFromFilename(f)
 		sv, err := semver.NewVersion(v)

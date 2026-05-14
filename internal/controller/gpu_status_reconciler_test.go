@@ -278,7 +278,7 @@ var _ = Describe("GpuStatusReconciler", func() {
 
 // setHelmInstalledTrue patches the Gpu status to simulate GpuReconciler having
 // completed a successful Helm install.
-func setHelmInstalledTrue(gpuName string) { //nolint:unparam
+func setHelmInstalledTrue(gpuName string) {
 	gpu := &gpuv1beta1.Gpu{}
 	Expect(k8sClient.Get(ctx, types.NamespacedName{Name: gpuName}, gpu)).To(Succeed())
 	patch := gpu.DeepCopy()
@@ -351,6 +351,15 @@ func createDriverDaemonSet(desired, ready, available, updated int32) {
 	Expect(k8sClient.Status().Update(ctx, ds)).To(Succeed())
 }
 
+// deleteDaemonSet removes a DaemonSet.
+func deleteDaemonSet(name, namespace string) {
+	ds := &appsv1.DaemonSet{}
+	if err := k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, ds); err != nil {
+		return
+	}
+	_ = k8sClient.Delete(ctx, ds)
+}
+
 // deleteAllDriverDaemonSets removes all DaemonSets with the driver app label in the given
 // namespace. Used in AfterEach to guarantee cleanup even when a test fails before DeferCleanup
 // is registered.
@@ -403,7 +412,7 @@ func createClusterPolicy(state string) {
 	cp.SetGroupVersionKind(clusterPolicyGVK)
 	cp.SetName(clusterPolicyName)
 	Expect(k8sClient.Create(ctx, cp)).To(Succeed())
-	cp.Object["status"] = map[string]any{"state": state}
+	cp.Object["status"] = map[string]interface{}{"state": state}
 	Expect(k8sClient.Status().Update(ctx, cp)).To(Succeed())
 }
 
