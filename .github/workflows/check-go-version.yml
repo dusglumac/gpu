@@ -31,9 +31,12 @@ jobs:
           echo "version=$DOCKER_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Compare versions
+        env:
+          GO_MOD_VERSION: ${{ steps.go_mod.outputs.version }}
+          DOCKERFILE_VERSION: ${{ steps.dockerfile.outputs.version }}
         run: |
-          if [ "${{ steps.go_mod.outputs.version }}" != "${{ steps.dockerfile.outputs.version }}" ]; then
-            echo "::error::Go version mismatch: go.mod=${{ steps.go_mod.outputs.version }}, Dockerfile=${{ steps.dockerfile.outputs.version }}"
+          if [ "$GO_MOD_VERSION" != "$DOCKERFILE_VERSION" ]; then
+            echo "::error::Go version mismatch: go.mod=$GO_MOD_VERSION, Dockerfile=$DOCKERFILE_VERSION"
             exit 1
           fi
-          echo "Go versions match: ${{ steps.go_mod.outputs.version }}"
+          echo "Go versions match: $GO_MOD_VERSION"
