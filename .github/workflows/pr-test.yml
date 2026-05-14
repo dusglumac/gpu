@@ -1,0 +1,30 @@
+name: PR Test
+run-name: Test ${{ github.event.pull_request.number || github.ref_name }}
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    name: Build & Test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build
+        run: make build
+
+      - name: Test
+        run: make test
+
+      - name: Check generated files are up to date
+        run: git diff --exit-code
