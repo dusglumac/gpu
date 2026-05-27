@@ -81,11 +81,11 @@ type GpuReconciler struct {
 // and Helm must apply those during install and upgrade. Without this grant, Helm fails with
 // a 403 when applying chart resources.
 //
-// The escalate and bind verbs are intentionally omitted. Kubernetes RBAC performs escalation
-// checks during authorization, preventing creation of roles with permissions beyond the
-// caller's effective permissions - even with create/update on RBAC resources. This is a
-// mitigation, not a guarantee: it applies within standard RBAC authorization checks and
-// does not substitute for keeping the permissions listed here minimal.
+// The escalate and bind verbs are required because the NVIDIA GPU Operator chart creates
+// ClusterRoles (e.g. gpu-operator, node-feature-discovery-worker) that include permissions
+// the controller itself holds. Kubernetes blocks granting permissions not currently held by
+// the caller unless escalate is present; bind is required to create ClusterRoleBindings that
+// reference those roles. Without these verbs, Helm fails with a 403 during chart install.
 // See: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#privilege-escalation-prevention-and-bootstrapping
 
 // +kubebuilder:rbac:groups=gpu.kyma-project.io,resources=gpus,verbs=get;list;watch;create;update;patch;delete
@@ -98,7 +98,7 @@ type GpuReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments;daemonsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings;roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings;roles;rolebindings,verbs=get;list;watch;create;update;patch;delete;bind;escalate
 // +kubebuilder:rbac:groups=nvidia.com,resources=clusterpolicies;nvidiadrivers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=nfd.k8s-sigs.io,resources=nodefeaturerules,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
