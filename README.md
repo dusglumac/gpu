@@ -130,7 +130,7 @@ Pin versions: `make chart-download NVIDIA_GPU_OPERATOR_VERSION=v26.3.1` or `make
 Both the chart `.tgz` and `gardenlinux.yaml` must exist before `go build`. Run download targets first or place files manually, e.g.:
 
 - Chart: https://helm.ngc.nvidia.com/nvidia/charts/gpu-operator-v26.3.1.tgz
-- Values: https://raw.githubusercontent.com/gardenlinux/gardenlinux-nvidia-installer/refs/tags/1.7.1/helm/gpu-operator-values.yaml
+- Values: https://raw.githubusercontent.com/gardenlinux/gardenlinux-nvidia-installer/refs/tags/1.10.0/helm/gpu-operator-values.yaml
 
 ## Contributing
 <!--- mandatory section - do not change this! --->
