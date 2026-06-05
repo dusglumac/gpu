@@ -81,7 +81,7 @@ func TestVersionFromFilename(t *testing.T) {
 func TestLatestVersionSorting(t *testing.T) {
 	filenames := []string{
 		"gpu-operator-v24.9.2.tgz",
-		"gpu-operator-v26.3.1.tgz",
+		"gpu-operator-v26.3.2.tgz",
 		"gpu-operator-v25.6.0.tgz",
 		"gpu-operator-v26.3.0.tgz",
 	}
@@ -105,8 +105,8 @@ func TestLatestVersionSorting(t *testing.T) {
 		return charts[i].version.GreaterThan(charts[j].version)
 	})
 
-	if charts[0].name != "gpu-operator-v26.3.1.tgz" {
-		t.Errorf("expected latest to be gpu-operator-v26.3.1.tgz, got %s", charts[0].name)
+	if charts[0].name != "gpu-operator-v26.3.2.tgz" {
+		t.Errorf("expected latest to be gpu-operator-v26.3.2.tgz, got %s", charts[0].name)
 	}
 	if charts[len(charts)-1].name != "gpu-operator-v24.9.2.tgz" {
 		t.Errorf("expected oldest to be gpu-operator-v24.9.2.tgz, got %s", charts[len(charts)-1].name)
