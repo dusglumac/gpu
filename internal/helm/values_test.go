@@ -90,6 +90,21 @@ func TestBuildValues(t *testing.T) {
 			wantRepo:          nvidiaDriverRepo,
 			wantVersionAbsent: true,
 		},
+		{
+			name:             "time-slicing enabled - devicePlugin.config keys are set",
+			spec:             gpuv1beta1.GpuSpec{TimeSlicing: &gpuv1beta1.TimeSlicingSpec{Replicas: 4}},
+			cluster:          ClusterInfo{OS: detection.OSTypeGardenLinux},
+			wantRepo:         "ghcr.io/gardenlinux/gardenlinux-nvidia-installer/1.10.0",
+			wantVersion:      "590",
+			wantTopLevelKeys: []string{"cdi", "toolkit", "node-feature-discovery"},
+		},
+		{
+			name:              "time-slicing disabled - devicePlugin.config keys are absent",
+			spec:              gpuv1beta1.GpuSpec{},
+			cluster:           ClusterInfo{OS: detection.OSTypeUbuntu},
+			wantRepo:          nvidiaDriverRepo,
+			wantVersionAbsent: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -123,6 +138,34 @@ func TestBuildValues(t *testing.T) {
 				}
 			} else {
 				assertString(t, driverMap, "version", tt.wantVersion)
+			}
+
+			if tt.spec.TimeSlicing != nil {
+				dpRaw, ok := got["devicePlugin"]
+				if !ok {
+					t.Fatal("devicePlugin key absent when TimeSlicing is set")
+				}
+				dpMap, ok := dpRaw.(map[string]any)
+				if !ok {
+					t.Fatalf("devicePlugin is %T, want map[string]any", dpRaw)
+				}
+				cfgRaw, ok := dpMap["config"]
+				if !ok {
+					t.Fatal("devicePlugin.config key absent when TimeSlicing is set")
+				}
+				cfgMap, ok := cfgRaw.(map[string]any)
+				if !ok {
+					t.Fatalf("devicePlugin.config is %T, want map[string]any", cfgRaw)
+				}
+				assertString(t, cfgMap, "name", "gpu-time-slicing-config")
+				assertString(t, cfgMap, "default", "any")
+			} else {
+				if dp, ok := got["devicePlugin"]; ok {
+					dpMap, _ := dp.(map[string]any)
+					if cfg, hasCfg := dpMap["config"]; hasCfg {
+						t.Errorf("devicePlugin.config = %v, want key absent when TimeSlicing is nil", cfg)
+					}
+				}
 			}
 		})
 	}

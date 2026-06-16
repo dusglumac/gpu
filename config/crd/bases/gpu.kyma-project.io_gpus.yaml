@@ -71,6 +71,21 @@ spec:
                       If empty, the default version from the GPU Operator chart is used.
                     type: string
                 type: object
+              timeSlicing:
+                description: |-
+                  timeSlicing enables GPU time-slicing. When absent, time-slicing is disabled
+                  and workloads get exclusive GPU access.
+                properties:
+                  replicas:
+                    description: replicas is the number of virtual GPU slices per
+                      physical GPU (1–48).
+                    format: int32
+                    maximum: 48
+                    minimum: 1
+                    type: integer
+                required:
+                - replicas
+                type: object
             type: object
           status:
             description: GpuStatus defines the observed state of the Gpu resource.

@@ -171,15 +171,20 @@ func (r *GpuReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	// 3. check driver DaemonSet -> set DriverReady condition
+	// 3. reconcile time-slicing ConfigMap
+	if err := r.reconcileTimeSlicing(ctx, gpu); err != nil {
+		return ctrl.Result{}, fmt.Errorf("reconciling time-slicing: %w", err)
+	}
+
+	// 4. check driver DaemonSet -> set DriverReady condition
 	driverStatus, driverReason, driverMsg, driverInfo := r.checkDriverDaemonSet(ctx)
 	driverCond := metav1.Condition{Type: condDriverReady, Status: driverStatus, Reason: driverReason, Message: driverMsg}
 
-	// 4. check ClusterPolicy -> set ValidatorPassed condition
+	// 5. check ClusterPolicy -> set ValidatorPassed condition
 	validatorStatus, validatorReason, validatorMsg := r.checkClusterPolicy(ctx)
 	validatorCond := metav1.Condition{Type: condValidatorPassed, Status: validatorStatus, Reason: validatorReason, Message: validatorMsg}
 
-	// 5. apply all conditions + Ready summary + observed fields
+	// 6. apply all conditions + Ready summary + observed fields
 	if err := r.applyStatus(ctx, gpu.Name, statusUpdate{
 		conditions:      []metav1.Condition{*preflightCond, helmCond, driverCond, validatorCond},
 		includeReady:    true,

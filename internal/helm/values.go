@@ -53,6 +53,7 @@ func BuildValues(spec gpuv1beta1.GpuSpec, cluster ClusterInfo) (map[string]any, 
 	}
 
 	applySpecOverrides(values, spec)
+	applyTimeSlicingValues(values, spec)
 
 	return values, nil
 }
@@ -111,4 +112,18 @@ func specDriverVersion(spec gpuv1beta1.GpuSpec) string {
 		return ""
 	}
 	return spec.Driver.Version
+}
+
+// applyTimeSlicingValues sets the devicePlugin.config values required to enable
+// GPU time-slicing via the NVIDIA device plugin.
+func applyTimeSlicingValues(values map[string]any, spec gpuv1beta1.GpuSpec) {
+	if spec.TimeSlicing == nil {
+		return
+	}
+	values["devicePlugin"] = map[string]any{
+		"config": map[string]any{
+			"name":    "gpu-time-slicing-config",
+			"default": "any",
+		},
+	}
 }

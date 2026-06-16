@@ -28,6 +28,14 @@ type DriverSpec struct {
 	Version string `json:"version,omitempty"`
 }
 
+// TimeSlicingSpec configures GPU time-slicing via the NVIDIA device plugin.
+type TimeSlicingSpec struct {
+	// replicas is the number of virtual GPU slices per physical GPU (1–48).
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=48
+	Replicas int32 `json:"replicas"`
+}
+
 // GpuSpec defines the desired state of the Gpu resource.
 // Users can optionally override the driver version.
 // All other configuration uses sensible defaults from the NVIDIA GPU Operator chart.
@@ -35,6 +43,11 @@ type GpuSpec struct {
 	// driver allows optional override of the NVIDIA driver configuration.
 	// +optional
 	Driver *DriverSpec `json:"driver,omitempty"`
+
+	// timeSlicing enables GPU time-slicing. When absent, time-slicing is disabled
+	// and workloads get exclusive GPU access.
+	// +optional
+	TimeSlicing *TimeSlicingSpec `json:"timeSlicing,omitempty"`
 }
 
 // DriverStatus reports the observed state of the NVIDIA driver across GPU nodes.
