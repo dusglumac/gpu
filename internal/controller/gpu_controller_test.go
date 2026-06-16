@@ -25,7 +25,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -44,10 +43,14 @@ type fakeInstaller struct {
 	uninstallCalled bool
 	installErr      error
 	uninstallErr    error
+	installFn       func(context.Context, []byte, map[string]any) error
 }
 
-func (f *fakeInstaller) InstallOrUpgrade(_ context.Context, _ []byte, _ map[string]any) error {
+func (f *fakeInstaller) InstallOrUpgrade(ctx context.Context, chart []byte, values map[string]any) error {
 	f.installCalls++
+	if f.installFn != nil {
+		return f.installFn(ctx, chart, values)
+	}
 	return f.installErr
 }
 
@@ -476,13 +479,13 @@ var _ = Describe("GpuReconciler", func() {
 			DeferCleanup(deleteNode, "gpu-node-ts")
 		})
 
-		AfterEach(func() {
-			cm := &corev1.ConfigMap{}
-			_ = k8sClient.Get(ctx, types.NamespacedName{Name: timeSlicingConfigMapName, Namespace: gpuOperatorNamespace}, cm)
-			_ = k8sClient.Delete(ctx, cm)
-		})
+		It("passes devicePlugin.config helm values when spec.timeSlicing is set", func() {
+			var capturedValues map[string]any
+			installer.installFn = func(_ context.Context, _ []byte, values map[string]any) error {
+				capturedValues = values
+				return nil
+			}
 
-		It("creates the time-slicing ConfigMap with correct content when spec.timeSlicing is set", func() {
 			gpu := &gpuv1beta1.Gpu{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: gpuName}, gpu)).To(Succeed())
 			gpu.Spec.TimeSlicing = &gpuv1beta1.TimeSlicingSpec{Replicas: 4}
@@ -491,46 +494,35 @@ var _ = Describe("GpuReconciler", func() {
 			_, err := reconciler.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
 
-			cm := &corev1.ConfigMap{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{
-				Name:      timeSlicingConfigMapName,
-				Namespace: gpuOperatorNamespace,
-			}, cm)).To(Succeed())
-
-			Expect(cm.Data).To(HaveKey("any"))
-			Expect(cm.Data["any"]).To(ContainSubstring("replicas: 4"))
-			Expect(cm.Data["any"]).To(ContainSubstring("nvidia.com/gpu"))
+			Expect(capturedValues).To(HaveKey("devicePlugin"))
+			dp := capturedValues["devicePlugin"].(map[string]any)
+			cfg := dp["config"].(map[string]any)
+			Expect(cfg["create"]).To(BeTrue())
+			Expect(cfg["name"]).To(Equal("gpu-time-slicing-config"))
+			Expect(cfg["default"]).To(Equal("any"))
+			data := cfg["data"].(map[string]any)
+			Expect(data["any"].(string)).To(ContainSubstring("replicas: 4"))
 		})
 
-		It("deletes the time-slicing ConfigMap when spec.timeSlicing is removed", func() {
-			By("first enable time-slicing")
-			gpu := &gpuv1beta1.Gpu{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: gpuName}, gpu)).To(Succeed())
-			gpu.Spec.TimeSlicing = &gpuv1beta1.TimeSlicingSpec{Replicas: 4}
-			Expect(k8sClient.Update(ctx, gpu)).To(Succeed())
+		It("omits devicePlugin.config helm values when spec.timeSlicing is absent", func() {
+			var capturedValues map[string]any
+			installer.installFn = func(_ context.Context, _ []byte, values map[string]any) error {
+				capturedValues = values
+				return nil
+			}
+
+			newGpu2 := &gpuv1beta1.Gpu{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: gpuName}, newGpu2)).To(Succeed())
+			Expect(newGpu2.Spec.TimeSlicing).To(BeNil())
+
 			_, err := reconciler.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("confirm ConfigMap exists")
-			cm := &corev1.ConfigMap{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{
-				Name:      timeSlicingConfigMapName,
-				Namespace: gpuOperatorNamespace,
-			}, cm)).To(Succeed())
-
-			By("disable time-slicing")
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: gpuName}, gpu)).To(Succeed())
-			gpu.Spec.TimeSlicing = nil
-			Expect(k8sClient.Update(ctx, gpu)).To(Succeed())
-			_, err = reconciler.Reconcile(ctx, req)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("confirm ConfigMap is gone")
-			err = k8sClient.Get(ctx, types.NamespacedName{
-				Name:      timeSlicingConfigMapName,
-				Namespace: gpuOperatorNamespace,
-			}, cm)
-			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "ConfigMap should be deleted when timeSlicing is nil")
+			if dp, ok := capturedValues["devicePlugin"]; ok {
+				if dpMap, ok := dp.(map[string]any); ok {
+					Expect(dpMap).NotTo(HaveKey("config"))
+				}
+			}
 		})
 	})
 

@@ -114,16 +114,22 @@ func specDriverVersion(spec gpuv1beta1.GpuSpec) string {
 	return spec.Driver.Version
 }
 
-// applyTimeSlicingValues sets the devicePlugin.config values required to enable
-// GPU time-slicing via the NVIDIA device plugin.
+// applyTimeSlicingValues configures the NVIDIA device plugin for GPU time-slicing
+// by embedding the config directly into the Helm values. The chart creates the
+// ConfigMap as part of the release, so no external ConfigMap management is needed.
 func applyTimeSlicingValues(values map[string]any, spec gpuv1beta1.GpuSpec) {
 	if spec.TimeSlicing == nil {
 		return
 	}
+	data := fmt.Sprintf("version: v1\nsharing:\n  timeSlicing:\n    resources:\n    - name: nvidia.com/gpu\n      replicas: %d\n", spec.TimeSlicing.Replicas)
 	values["devicePlugin"] = map[string]any{
 		"config": map[string]any{
+			"create":  true,
 			"name":    "gpu-time-slicing-config",
 			"default": "any",
+			"data": map[string]any{
+				"any": data,
+			},
 		},
 	}
 }

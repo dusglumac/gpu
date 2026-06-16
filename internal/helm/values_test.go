@@ -15,6 +15,8 @@ limitations under the License.
 package helm
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	gpuv1beta1 "github.com/kyma-project/gpu/api/v1beta1"
@@ -157,8 +159,27 @@ func TestBuildValues(t *testing.T) {
 				if !ok {
 					t.Fatalf("devicePlugin.config is %T, want map[string]any", cfgRaw)
 				}
+				if create, _ := cfgMap["create"].(bool); !create {
+					t.Errorf("devicePlugin.config.create = %v, want true", cfgMap["create"])
+				}
 				assertString(t, cfgMap, "name", "gpu-time-slicing-config")
 				assertString(t, cfgMap, "default", "any")
+				dataRaw, ok := cfgMap["data"]
+				if !ok {
+					t.Fatal("devicePlugin.config.data key absent when TimeSlicing is set")
+				}
+				dataMap, ok := dataRaw.(map[string]any)
+				if !ok {
+					t.Fatalf("devicePlugin.config.data is %T, want map[string]any", dataRaw)
+				}
+				anyVal, ok := dataMap["any"].(string)
+				if !ok {
+					t.Fatalf("devicePlugin.config.data[\"any\"] is %T, want string", dataMap["any"])
+				}
+				wantReplicas := fmt.Sprintf("replicas: %d", tt.spec.TimeSlicing.Replicas)
+				if !contains(anyVal, wantReplicas) {
+					t.Errorf("devicePlugin.config.data[\"any\"] = %q, want it to contain %q", anyVal, wantReplicas)
+				}
 			} else {
 				if dp, ok := got["devicePlugin"]; ok {
 					dpMap, _ := dp.(map[string]any)
@@ -186,4 +207,8 @@ func assertString(t *testing.T, m map[string]any, key, want string) {
 	if s != want {
 		t.Errorf("key %q = %q, want %q", key, s, want)
 	}
+}
+
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
 }
