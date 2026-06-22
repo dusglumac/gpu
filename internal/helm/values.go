@@ -25,6 +25,7 @@ import (
 )
 
 const nvidiaDriverRepo = "nvcr.io/nvidia"
+const timeSlicingConfigMapName = "gpu-time-slicing-config"
 
 // ClusterInfo captures what the operator has detected about the cluster.
 // It is produced by the detection layer and consumed by BuildValues.
@@ -122,14 +123,17 @@ func applyTimeSlicingValues(values map[string]any, spec gpuv1beta1.GpuSpec) {
 		return
 	}
 	data := fmt.Sprintf("version: v1\nsharing:\n  timeSlicing:\n    resources:\n    - name: nvidia.com/gpu\n      replicas: %d\n", spec.TimeSlicing.Replicas)
-	values["devicePlugin"] = map[string]any{
-		"config": map[string]any{
-			"create":  true,
-			"name":    "gpu-time-slicing-config",
-			"default": "any",
-			"data": map[string]any{
-				"any": data,
-			},
+	dp, _ := values["devicePlugin"].(map[string]any)
+	if dp == nil {
+		dp = map[string]any{}
+	}
+	dp["config"] = map[string]any{
+		"create":  true,
+		"name":    timeSlicingConfigMapName,
+		"default": "any",
+		"data": map[string]any{
+			"any": data,
 		},
 	}
+	values["devicePlugin"] = dp
 }
