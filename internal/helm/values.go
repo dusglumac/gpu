@@ -25,7 +25,22 @@ import (
 )
 
 const nvidiaDriverRepo = "nvcr.io/nvidia"
-const timeSlicingConfigMapName = "gpu-time-slicing-config"
+const timeSlicingConfigMapPrefix = "gpu-time-slicing-config"
+
+// TimeSlicingConfigMapName returns the ConfigMap name for the given spec, or "" when
+// time-slicing is disabled. The replica count is encoded in the name so that changing
+// replicas produces a new name, which changes ClusterPolicy.spec.devicePlugin.config.name
+// and signals the GPU Operator to restart the device plugin DaemonSet.
+func TimeSlicingConfigMapName(spec gpuv1beta1.GpuSpec) string {
+	if spec.TimeSlicing == nil {
+		return ""
+	}
+	return timeSlicingConfigMapName(spec.TimeSlicing.Replicas)
+}
+
+func timeSlicingConfigMapName(replicas int32) string {
+	return fmt.Sprintf("%s-%d", timeSlicingConfigMapPrefix, replicas)
+}
 
 // ClusterInfo captures what the operator has detected about the cluster.
 // It is produced by the detection layer and consumed by BuildValues.
@@ -129,7 +144,7 @@ func applyTimeSlicingValues(values map[string]any, spec gpuv1beta1.GpuSpec) {
 	}
 	dp["config"] = map[string]any{
 		"create":  true,
-		"name":    timeSlicingConfigMapName,
+		"name":    timeSlicingConfigMapName(spec.TimeSlicing.Replicas),
 		"default": "any",
 		"data": map[string]any{
 			"any": data,

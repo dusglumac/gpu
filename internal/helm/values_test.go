@@ -162,7 +162,7 @@ func TestBuildValues(t *testing.T) {
 				if create, _ := cfgMap["create"].(bool); !create {
 					t.Errorf("devicePlugin.config.create = %v, want true", cfgMap["create"])
 				}
-				assertString(t, cfgMap, "name", "gpu-time-slicing-config")
+				assertString(t, cfgMap, "name", "gpu-time-slicing-config-4")
 				assertString(t, cfgMap, "default", "any")
 				dataRaw, ok := cfgMap["data"]
 				if !ok {
@@ -211,4 +211,27 @@ func assertString(t *testing.T, m map[string]any, key, want string) {
 
 func contains(s, substr string) bool {
 	return strings.Contains(s, substr)
+}
+
+func TestTimeSlicingConfigMapName(t *testing.T) {
+	t.Run("includes replica count in name", func(t *testing.T) {
+		spec := gpuv1beta1.GpuSpec{TimeSlicing: &gpuv1beta1.TimeSlicingSpec{Replicas: 4}}
+		if got := TimeSlicingConfigMapName(spec); got != "gpu-time-slicing-config-4" {
+			t.Errorf("TimeSlicingConfigMapName() = %q, want %q", got, "gpu-time-slicing-config-4")
+		}
+	})
+
+	t.Run("different replicas produce different names", func(t *testing.T) {
+		spec4 := gpuv1beta1.GpuSpec{TimeSlicing: &gpuv1beta1.TimeSlicingSpec{Replicas: 4}}
+		spec8 := gpuv1beta1.GpuSpec{TimeSlicing: &gpuv1beta1.TimeSlicingSpec{Replicas: 8}}
+		if TimeSlicingConfigMapName(spec4) == TimeSlicingConfigMapName(spec8) {
+			t.Error("TimeSlicingConfigMapName() returned same name for different replica counts")
+		}
+	})
+
+	t.Run("returns empty string when time-slicing is nil", func(t *testing.T) {
+		if got := TimeSlicingConfigMapName(gpuv1beta1.GpuSpec{}); got != "" {
+			t.Errorf("TimeSlicingConfigMapName() = %q, want \"\"", got)
+		}
+	})
 }

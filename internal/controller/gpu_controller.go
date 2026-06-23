@@ -277,6 +277,8 @@ func (r *GpuReconciler) installOrUpgrade(ctx context.Context, gpu *gpuv1beta1.Gp
 		return metav1.Condition{}, "", fmt.Errorf("helm install/upgrade: %w", err)
 	}
 
+	r.cleanupStaleTimeSlicingConfigMap(ctx, helm.TimeSlicingConfigMapName(gpu.Spec))
+
 	chartVersion, err := chart.GPUOperatorChartVersion()
 	if err != nil {
 		return metav1.Condition{}, "", fmt.Errorf("reading chart version: %w", err)
@@ -288,6 +290,38 @@ func (r *GpuReconciler) installOrUpgrade(ctx context.Context, gpu *gpuv1beta1.Gp
 		Reason:  reasonInstalled,
 		Message: fmt.Sprintf("GPU Operator %s installed successfully", chartVersion),
 	}, chartVersion, nil
+}
+
+// cleanupStaleTimeSlicingConfigMap deletes any gpu-time-slicing-config-* ConfigMaps
+// in the gpu-operator namespace whose name does not match currentName. This handles the
+// case where replicas changed: Helm creates the new ConfigMap but leaves the old one
+// behind because its name changed. currentName is "" when time-slicing is disabled,
+// in which case all time-slicing ConfigMaps are deleted (Helm will have already removed
+// the active one as part of the upgrade that dropped devicePlugin.config).
+func (r *GpuReconciler) cleanupStaleTimeSlicingConfigMap(ctx context.Context, currentName string) {
+	logger := log.FromContext(ctx)
+
+	cmList := &corev1.ConfigMapList{}
+	if err := r.List(ctx, cmList,
+		client.InNamespace(gpuOperatorNamespace),
+		client.MatchingLabels{"app.kubernetes.io/managed-by": "Helm"},
+	); err != nil {
+		logger.Error(err, "failed to list ConfigMaps for stale time-slicing cleanup")
+		return
+	}
+
+	for i := range cmList.Items {
+		cm := &cmList.Items[i]
+		if !strings.HasPrefix(cm.Name, "gpu-time-slicing-config-") {
+			continue
+		}
+		if cm.Name == currentName {
+			continue
+		}
+		if err := r.Delete(ctx, cm); err != nil && !apierrors.IsNotFound(err) {
+			logger.Error(err, "failed to delete stale time-slicing ConfigMap", "name", cm.Name)
+		}
+	}
 }
 
 func (r *GpuReconciler) reconcileDelete(ctx context.Context, gpu *gpuv1beta1.Gpu) (ctrl.Result, error) {

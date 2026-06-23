@@ -498,7 +498,7 @@ var _ = Describe("GpuReconciler", func() {
 			dp := capturedValues["devicePlugin"].(map[string]any)
 			cfg := dp["config"].(map[string]any)
 			Expect(cfg["create"]).To(BeTrue())
-			Expect(cfg["name"]).To(Equal("gpu-time-slicing-config"))
+			Expect(cfg["name"]).To(Equal("gpu-time-slicing-config-4"))
 			Expect(cfg["default"]).To(Equal("any"))
 			data := cfg["data"].(map[string]any)
 			Expect(data["any"].(string)).To(ContainSubstring("replicas: 4"))
@@ -523,6 +523,53 @@ var _ = Describe("GpuReconciler", func() {
 					Expect(dpMap).NotTo(HaveKey("config"))
 				}
 			}
+		})
+
+		It("deletes stale time-slicing ConfigMap when replicas change", func() {
+			// Simulate a ConfigMap left behind from a previous reconcile with replicas=4.
+			stale := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "gpu-time-slicing-config-4",
+					Namespace: gpuOperatorNamespace,
+					Labels:    map[string]string{"app.kubernetes.io/managed-by": "Helm"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, stale)).To(Succeed())
+
+			gpu := &gpuv1beta1.Gpu{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: gpuName}, gpu)).To(Succeed())
+			gpu.Spec.TimeSlicing = &gpuv1beta1.TimeSlicingSpec{Replicas: 8}
+			Expect(k8sClient.Update(ctx, gpu)).To(Succeed())
+
+			_, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			cm := &corev1.ConfigMap{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: "gpu-time-slicing-config-4", Namespace: gpuOperatorNamespace}, cm)
+			Expect(err).To(HaveOccurred())
+			Expect(client.IgnoreNotFound(err)).To(Succeed())
+		})
+
+		It("does not delete ConfigMap when replicas are unchanged", func() {
+			existing := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "gpu-time-slicing-config-4",
+					Namespace: gpuOperatorNamespace,
+					Labels:    map[string]string{"app.kubernetes.io/managed-by": "Helm"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, existing)).To(Succeed())
+
+			gpu := &gpuv1beta1.Gpu{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: gpuName}, gpu)).To(Succeed())
+			gpu.Spec.TimeSlicing = &gpuv1beta1.TimeSlicingSpec{Replicas: 4}
+			Expect(k8sClient.Update(ctx, gpu)).To(Succeed())
+
+			_, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			cm := &corev1.ConfigMap{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "gpu-time-slicing-config-4", Namespace: gpuOperatorNamespace}, cm)).To(Succeed())
 		})
 	})
 
