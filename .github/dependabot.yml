@@ -6,7 +6,7 @@ updates:
       interval: "weekly"
     labels:
       - "go"
-      - "area/dependency"
+      - "dependencies"
     commit-message:
       prefix: "chore(dependabot)"
     groups:
@@ -37,8 +37,7 @@ updates:
     schedule:
       interval: "weekly"
     labels:
-      - "docker"
-      - "area/dependency"
+      - "dependencies"
     commit-message:
       prefix: "chore(dependabot)"
 
@@ -48,7 +47,6 @@ updates:
     schedule:
       interval: "weekly"
     labels:
-      - "github"
-      - "area/dependency"
+      - "dependencies"
     commit-message:
       prefix: "chore(dependabot)"
