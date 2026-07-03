@@ -42,8 +42,7 @@ updates:
       prefix: "chore(dependabot)"
 
   - package-ecosystem: "github-actions"
-    directories:
-      - "/"
+    directory: "/"
     schedule:
       interval: "weekly"
     labels:
