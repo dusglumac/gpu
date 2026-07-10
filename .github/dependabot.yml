@@ -1,0 +1,51 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "go"
+      - "dependencies"
+    commit-message:
+      prefix: "chore(dependabot)"
+    groups:
+      k8s:
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+      google:
+        patterns:
+          - "cloud.google.com/*"
+          - "google.golang.org/*"
+          - "github.com/google/*"
+      otel:
+        patterns:
+          - "go.opentelemetry.io/*"
+      azure:
+        patterns:
+          - "github.com/Azure/*"
+      aws:
+        patterns:
+          - "github.com/aws/*"
+      gardener:
+        patterns:
+          - "github.com/gardener/*"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(dependabot)"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(dependabot)"
